@@ -33,6 +33,8 @@ export async function createSyntheticEpub(): Promise<File> {
     <item id="ch3" href="chapter02.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch4" href="chapter03.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch5" href="epilogue.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch6" href="empty.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch7" href="backmatter.xhtml" media-type="application/xhtml+xml"/>
   </manifest>
   <spine>
     <itemref idref="ch0"/>
@@ -41,6 +43,8 @@ export async function createSyntheticEpub(): Promise<File> {
     <itemref idref="ch3"/>
     <itemref idref="ch4"/>
     <itemref idref="ch5"/>
+    <itemref idref="ch6"/>
+    <itemref idref="ch7"/>
   </spine>
 </package>`,
   );
@@ -59,27 +63,36 @@ export async function createSyntheticEpub(): Promise<File> {
     <li><a href="chapter02.xhtml">Chapter Two: The Stranger\u2019s Request</a></li>
     <li><a href="chapter03.xhtml">Chapter Three: Beneath the Clocktower</a></li>
     <li><a href="epilogue.xhtml">Epilogue</a></li>
+    <li><a href="backmatter.xhtml">Appendix</a></li>
   </ol>
 </nav>
 </body>
 </html>`,
   );
 
+  // Front matter: title page, copyright, dedication
   zip.file(
     'OEBPS/frontmatter.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head><title>Front Matter</title></head>
 <body>
+<section epub:type="titlepage">
 <h1>The Clockmaker\u2019s Apprentice</h1>
 <p>by Synthetic Test Author</p>
+</section>
+<section epub:type="copyright-page">
 <p>\u00A9 2025 Synthetic Press. All rights reserved.</p>
 <p>This is a test EPUB created for the Audiobook Production Studio.</p>
+</section>
+<section epub:type="dedication">
+<p>For those who listen for the quiet ticking beneath the noise.</p>
+</section>
 </body>
 </html>`,
   );
 
-  // Prologue: contains page numbers, repeated header, unusual Unicode
+  // Prologue: page numbers, repeated header, Unicode, scene break, hidden span
   zip.file(
     'OEBPS/prologue.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -92,6 +105,7 @@ export async function createSyntheticEpub(): Promise<File> {
 <p>The old clock tower stood at the center of Millhaven, its face dark against the winter sky. For thirty\u00ADyears it had kept perfect time\u2014until tonight.</p>
 <p>\u201CYou can\u2019t fix what doesn\u2019t want fixing,\u201D old Thomas said, his voice barely above a whisper.</p>
 <p>The apprentice stared at the silent gears.\u00A0\u00A0\u00A0Each one was larger than his head, coated in a fine layer of\u200Bdust that sparkled in the candlelight.</p>
+<p style="display:none">This text is hidden and should not be narrated.</p>
 <hr/>
 <p>Outside, the town slept. No one heard the first chime\u2014a sound that hadn\u2019t rung in three decades.</p>
 <p>2</p>
@@ -99,7 +113,7 @@ export async function createSyntheticEpub(): Promise<File> {
 </html>`,
   );
 
-  // Chapter 1: contains dialogue, italics, bold, and malformed whitespace
+  // Chapter 1: dialogue, italics, bold, whitespace, empty paragraphs, image with filename alt
   zip.file(
     'OEBPS/chapter01.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -122,12 +136,13 @@ export async function createSyntheticEpub(): Promise<File> {
 <p>\u2014 <strong>Wilhelm Harwick</strong>, <em>On the Art of Horology</em></p>
 </blockquote>
 <p>He picked up the tweezers and began.</p>
+<img src="images/workshop_03_final.png" alt="chapter_03_final.png"/>
 <p>47</p>
 </body>
 </html>`,
   );
 
-  // Chapter 2: contains scene break, repeated footer, intentionally broken lines
+  // Chapter 2: scene break, repeated footer, broken lines, internal cross-reference link, decorative image
   zip.file(
     'OEBPS/chapter02.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -143,6 +158,8 @@ with the careful precision of someone who understood what she was looking at.</p
 <p>Harwick wiped his hands on his apron. \u201CWe repair all manner of timepieces here.\u201D</p>
 <p>\u201CNot like this one.\u201D She set the case on the counter and opened it.</p>
 <p>Inside, resting on faded velvet, was the most extraordinary clock Elias had ever seen. Its face was divided not into twelve hours but into <strong>thirteen</strong>. The numbers were etched in a script he didn\u2019t recognize.</p>
+<img src="images/ornament.png" alt=""/>
+<p>Read more about the <a href="chapter03.xhtml#tunnels">tunnels beneath the clocktower</a> in the next chapter.</p>
 <hr/>
 <p>That night, Elias couldn\u2019t sleep. He lay in his narrow bed above the workshop, staring at the ceiling, thinking about the thirteen-hour clock.</p>
 <p>\u201CWhat language were those numbers?\u201D he asked the darkness.</p>
@@ -152,7 +169,7 @@ with the careful precision of someone who understood what she was looking at.</p
 </html>`,
   );
 
-  // Chapter 3: contains footnote references, block quotes, more Unicode
+  // Chapter 3: footnotes with backlinks, block quotes, meaningful alt text, table
   zip.file(
     'OEBPS/chapter03.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -160,7 +177,7 @@ with the careful precision of someone who understood what she was looking at.</p
 <head><title>Chapter Three</title></head>
 <body>
 <h2>Chapter Three: Beneath the Clocktower</h2>
-<p>The passage beneath the clocktower was older than the town itself. According to the <em>Historical Register of Millhaven</em><sup class="footnote">1</sup>, the tunnels dated back to the twelfth century.</p>
+<p id="tunnels">The passage beneath the clocktower was older than the town itself. According to the <em>Historical Register of Millhaven</em><sup class="footnote"><a href="#fn1" epub:type="noteref">1</a></sup>, the tunnels dated back to the twelfth century.</p>
 <p>Elias held his lantern high. The walls were lined with\u2026 were those gears? Enormous bronze gears, each one taller than a man, embedded directly into the stone.</p>
 <p>\u201CThis is impossible,\u201D he breathed.</p>
 <blockquote>
@@ -168,11 +185,22 @@ with the careful precision of someone who understood what she was looking at.</p
 </blockquote>
 <p>\u201CNot impossible,\u201D said a voice behind him. \u201CJust very, very old.\u201D</p>
 <p>He spun around. The stranger stood in the tunnel entrance, her grey coat now spattered with rain. In her hand she held the thirteen-hour clock, and it was <em>ticking</em>.</p>
+<img src="images/clocktower_diagram.jpg" alt="A cross-section diagram of the clocktower showing the hidden tunnels beneath."/>
 <p>\u201CHow\u2014\u201D</p>
 <p>\u201CThe clock needed to come home,\u201D she said simply. \u201CThis is where it was made.\u201D</p>
+<table>
+<caption>Known Tunnel Sections</caption>
+<tr><th>Section</th><th>Length</th><th>Depth</th></tr>
+<tr><td>North Passage</td><td>200m</td><td>15m</td></tr>
+<tr><td>East Passage</td><td>150m</td><td>12m</td></tr>
+<tr><td>Central Chamber</td><td>40m</td><td>20m</td></tr>
+</table>
 <hr/>
 <p>The gears in the walls began to turn.</p>
 <p>103</p>
+<aside id="fn1" epub:type="footnote">
+<p>The Historical Register of Millhaven, ed. Helena Voss, 1847, p. 234. <a href="#tunnels" epub:type="backlink">\u21A9</a></p>
+</aside>
 </body>
 </html>`,
   );
@@ -190,6 +218,37 @@ with the careful precision of someone who understood what she was looking at.</p
 <p>The clocktower of Millhaven still stands. Its face now shows thirteen hours, though most visitors assume it\u2019s a quirk of the old design. The townsfolk know better, but they don\u2019t talk about it.</p>
 <p>And if you press your ear to the base of the tower on a quiet night, you can still hear them\u2014the great gears, turning deep beneath the stone, keeping time to a rhythm older than memory.</p>
 <p><em>The End</em></p>
+</body>
+</html>`,
+  );
+
+  // Empty spine item - should NOT become a chapter
+  zip.file(
+    'OEBPS/empty.xhtml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Empty Page</title></head>
+<body>
+</body>
+</html>`,
+  );
+
+  // Back matter: appendix with references
+  zip.file(
+    'OEBPS/backmatter.xhtml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Appendix</title></head>
+<body>
+<section epub:type="appendix">
+<h2>Appendix: A Note on Sources</h2>
+<p>The events described in this narrative are drawn from the Historical Register of Millhaven and from the private journals of Wilhelm Harwick, now held in the Millhaven Clockmaker\u2019s Museum.</p>
+</section>
+<section epub:type="references">
+<h3>References</h3>
+<p>Voss, Helena. <em>Historical Register of Millhaven</em>. Millhaven Press, 1847.</p>
+<p>Harwick, Wilhelm. <em>On the Art of Horology</em>. London: Crown &amp; Gear, 1889.</p>
+</section>
 </body>
 </html>`,
   );
