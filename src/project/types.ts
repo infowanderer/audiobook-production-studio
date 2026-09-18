@@ -22,6 +22,8 @@ export type ProjectStatus =
   | 'imported'
   | 'extracting'
   | 'extracted'
+  | 'preparing_narration'
+  | 'narration_prepared'
   | 'cleaning'
   | 'cleaned'
   | 'reviewing'

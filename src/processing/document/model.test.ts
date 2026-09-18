@@ -3,6 +3,8 @@ import {
   nodeToPlainText,
   nodeToHtml,
   cloneNodes,
+  isNodeEmpty,
+  hasNarratableContent,
   type DocumentNode,
 } from './model';
 
@@ -65,6 +67,40 @@ describe('nodeToPlainText', () => {
       ],
     };
     expect(nodeToPlainText(node)).toBe('Hello world and bold\n\n');
+  });
+
+  it('returns empty string for footnote_ref', () => {
+    expect(nodeToPlainText({ type: 'footnote_ref', content: '1', attributes: { ref: '1' } })).toBe('');
+  });
+
+  it('returns empty string for footnote_backlink', () => {
+    expect(nodeToPlainText({ type: 'footnote_backlink', content: '\u21A9', attributes: { href: '#ref' } })).toBe('');
+  });
+
+  it('returns empty string for image', () => {
+    expect(nodeToPlainText({ type: 'image', attributes: { src: 'img.png', alt: 'description' } })).toBe('');
+  });
+
+  it('returns empty string for non_narratable', () => {
+    expect(nodeToPlainText({ type: 'non_narratable', children: [{ type: 'text', content: 'hidden' }] })).toBe('');
+  });
+
+  it('renders hyperlink children as visible text', () => {
+    const node: DocumentNode = {
+      type: 'hyperlink',
+      children: [{ type: 'text', content: 'click here' }],
+      attributes: { href: 'http://example.com' },
+    };
+    expect(nodeToPlainText(node)).toBe('click here');
+  });
+
+  it('returns empty for narrationExcluded nodes', () => {
+    const node: DocumentNode = {
+      type: 'paragraph',
+      children: [{ type: 'text', content: 'excluded text' }],
+      narrationExcluded: true,
+    };
+    expect(nodeToPlainText(node)).toBe('');
   });
 });
 
@@ -139,6 +175,66 @@ describe('nodeToHtml', () => {
     expect(nodeToHtml(node)).toBe('<sup class="footnote-ref">[1]</sup>');
   });
 
+  it('renders footnote as aside', () => {
+    const node: DocumentNode = {
+      type: 'footnote',
+      attributes: { id: 'fn1' },
+      children: [{ type: 'text', content: 'Footnote text' }],
+    };
+    expect(nodeToHtml(node)).toBe('<aside class="footnote" id="fn1">Footnote text</aside>');
+  });
+
+  it('renders footnote_backlink as empty', () => {
+    const node: DocumentNode = {
+      type: 'footnote_backlink',
+      content: '\u21A9',
+      attributes: { href: '#ref' },
+    };
+    expect(nodeToHtml(node)).toBe('');
+  });
+
+  it('renders hyperlink as <a>', () => {
+    const node: DocumentNode = {
+      type: 'hyperlink',
+      children: [{ type: 'text', content: 'link text' }],
+      attributes: { href: 'http://example.com' },
+    };
+    expect(nodeToHtml(node)).toBe('<a href="http://example.com">link text</a>');
+  });
+
+  it('renders image as <img>', () => {
+    const node: DocumentNode = {
+      type: 'image',
+      attributes: { src: 'img.png', alt: 'description' },
+    };
+    expect(nodeToHtml(node)).toBe('<img src="img.png" alt="description" />');
+  });
+
+  it('renders table', () => {
+    const node: DocumentNode = {
+      type: 'table',
+      children: [
+        { type: 'table_row', children: [
+          { type: 'table_cell', children: [{ type: 'text', content: 'A' }] },
+          { type: 'table_cell', children: [{ type: 'text', content: 'B' }] },
+        ] },
+      ],
+    };
+    const html = nodeToHtml(node);
+    expect(html).toContain('<table>');
+    expect(html).toContain('<tr>');
+    expect(html).toContain('<td>A</td>');
+    expect(html).toContain('<td>B</td>');
+  });
+
+  it('renders non_narratable as empty', () => {
+    const node: DocumentNode = {
+      type: 'non_narratable',
+      children: [{ type: 'text', content: 'hidden' }],
+    };
+    expect(nodeToHtml(node)).toBe('');
+  });
+
   it('renders section wrapper', () => {
     const node: DocumentNode = {
       type: 'section',
@@ -181,5 +277,71 @@ describe('cloneNodes', () => {
 
   it('handles empty arrays', () => {
     expect(cloneNodes([])).toEqual([]);
+  });
+});
+
+describe('isNodeEmpty', () => {
+  it('returns true for empty text', () => {
+    expect(isNodeEmpty({ type: 'text', content: '' })).toBe(true);
+  });
+
+  it('returns true for whitespace-only text', () => {
+    expect(isNodeEmpty({ type: 'text', content: '   ' })).toBe(true);
+  });
+
+  it('returns false for non-empty text', () => {
+    expect(isNodeEmpty({ type: 'text', content: 'hello' })).toBe(false);
+  });
+
+  it('returns false for scene_break', () => {
+    expect(isNodeEmpty({ type: 'scene_break' })).toBe(false);
+  });
+
+  it('returns false for image', () => {
+    expect(isNodeEmpty({ type: 'image', attributes: { src: 'x', alt: '' } })).toBe(false);
+  });
+
+  it('returns true for paragraph with no children', () => {
+    expect(isNodeEmpty({ type: 'paragraph', children: [] })).toBe(true);
+  });
+
+  it('returns true for paragraph with empty children', () => {
+    expect(isNodeEmpty({ type: 'paragraph', children: [{ type: 'text', content: '' }] })).toBe(true);
+  });
+
+  it('returns false for paragraph with content', () => {
+    expect(isNodeEmpty({ type: 'paragraph', children: [{ type: 'text', content: 'hi' }] })).toBe(false);
+  });
+});
+
+describe('hasNarratableContent', () => {
+  it('returns true for text content', () => {
+    expect(hasNarratableContent([{ type: 'text', content: 'hello' }])).toBe(true);
+  });
+
+  it('returns false for empty array', () => {
+    expect(hasNarratableContent([])).toBe(false);
+  });
+
+  it('returns false for only excluded nodes', () => {
+    expect(hasNarratableContent([
+      { type: 'footnote_ref', content: '1', narrationExcluded: true },
+    ])).toBe(false);
+  });
+
+  it('returns true for nested text content', () => {
+    expect(hasNarratableContent([
+      { type: 'paragraph', children: [{ type: 'text', content: 'hi' }] },
+    ])).toBe(true);
+  });
+
+  it('returns false for only empty nodes', () => {
+    expect(hasNarratableContent([
+      { type: 'paragraph', children: [{ type: 'text', content: '' }] },
+    ])).toBe(false);
+  });
+
+  it('returns true for scene_break', () => {
+    expect(hasNarratableContent([{ type: 'scene_break' }])).toBe(true);
   });
 });
