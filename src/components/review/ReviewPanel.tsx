@@ -1,8 +1,18 @@
 import { useState } from 'react';
-import { Check, X, PenLine, Eye, EyeOff } from 'lucide-react';
+import { Check, X, PenLine, Eye, EyeOff, Info } from 'lucide-react';
 import type { ChapterRecord } from '@/project/types';
 import type { DocumentNode } from '@/processing/document/model';
 import { nodeToPlainText } from '@/processing/document/model';
+
+function countExcludedNodes(nodes: DocumentNode[]): number {
+  let count = 0;
+  for (const node of nodes) {
+    if (node.narrationExcluded) count++;
+    if (node.children) count += countExcludedNodes(node.children);
+    if (node.type === 'non_narratable') count++;
+  }
+  return count;
+}
 
 interface ReviewPanelProps {
   chapter: ChapterRecord | null;
@@ -57,6 +67,18 @@ export function ReviewPanel({ chapter, onAcceptAll, onRejectAll, onSaveEdit }: R
         <span className="text-sm font-medium text-slate-300 truncate">{chapter.title}</span>
 
         <StatusBadge status={chapter.reviewStatus} />
+
+        {(() => {
+          const excludedCount = countExcludedNodes(chapter.originalContent);
+          return excludedCount > 0 ? (
+            <span className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-sky-400/10 text-sky-400"
+              title={`${excludedCount} content element(s) excluded from narration during preparation`}
+            >
+              <Info size={9} />
+              {excludedCount} excluded
+            </span>
+          ) : null;
+        })()}
 
         <div className="flex-1" />
 

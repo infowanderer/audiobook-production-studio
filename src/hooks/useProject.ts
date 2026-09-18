@@ -6,6 +6,7 @@ import { runCleanup } from '@/processing/cleanup/engine';
 import type { CleanupConfig } from '@/processing/cleanup/types';
 import { DEFAULT_CLEANUP_CONFIG } from '@/processing/cleanup/types';
 import type { DocumentNode } from '@/processing/document/model';
+import { prepareChapterNarration, exclusionToCleanupChange } from '@/processing/narration/preparation';
 
 export type AppView = 'home' | 'project';
 
@@ -93,17 +94,26 @@ export function useProject() {
       const book = await parseEpub(file);
       const hash = await computeFileHash(file);
 
+      showStatus('Preparing narration...', 'progress');
+      await pm.updateProject(project.id, { status: 'preparing_narration' });
+
+      const preparedChapters = book.chapters.map((ch) => {
+        const result = prepareChapterNarration(ch);
+        return result.chapter;
+      });
+
       showStatus('Saving chapters...', 'progress');
-      const savedChapters = await pm.saveChapters(project.id, book.chapters);
+      const savedChapters = await pm.saveChapters(project.id, preparedChapters);
 
       const updatedProject = await pm.updateProject(project.id, {
-        status: 'imported',
+        status: 'narration_prepared',
         source_filename: file.name,
         source_hash: hash,
         metadata: {
           bookTitle: book.title,
           bookAuthor: book.author,
           chapterCount: book.chapters.length,
+          narrationPreparationApplied: true,
         },
       });
 
